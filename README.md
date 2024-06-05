@@ -1,5 +1,126 @@
 #  React websites on Google Cloud
 
+Certainly! Here is a consolidated list of all the steps required to set up your GoDaddy domain to work with your Google Cloud instance, including both HTTP and HTTPS configuration without duplication:
+
+### Step 1: Configure GoDaddy DNS Settings
+
+1. **Log in to your GoDaddy account** and access your domain's DNS settings.
+2. **Add an A Record**:
+    - **Type**: A
+    - **Name**: @
+    - **Value**: 34.16.153.49
+    - **TTL**: 600 seconds (or 1 Hour)
+3. **Add/Edit the CNAME Record for `www`**:
+    - **Type**: CNAME
+    - **Name**: www
+    - **Value**: @
+    - **TTL**: 1 Hour
+
+### Step 2: Configure Google Cloud Firewall Rules
+
+1. **Create a firewall rule for HTTP**:
+    ```sh
+    gcloud compute firewall-rules create allow-http --allow tcp:80
+    ```
+2. **Create a firewall rule for HTTPS**:
+    ```sh
+    gcloud compute firewall-rules create allow-https --allow tcp:443
+    ```
+
+### Step 3: Ensure Nginx is Running
+
+1. **SSH into your instance**:
+    ```sh
+    gcloud compute ssh [INSTANCE_NAME] --zone=[ZONE]
+    ```
+2. **Check Nginx status**:
+    ```sh
+    sudo systemctl status nginx
+    ```
+3. **If Nginx is not running, start it**:
+    ```sh
+    sudo systemctl start nginx
+    ```
+
+### Step 4: Configure Nginx for HTTP and HTTPS
+
+1. **Edit the Nginx configuration file**:
+    ```sh
+    sudo nano /etc/nginx/sites-available/default
+    ```
+2. **Update the configuration to include HTTP to HTTPS redirection and HTTPS**:
+    ```nginx
+    server {
+        listen 80;
+        listen [::]:80;
+        server_name yourdomain.com www.yourdomain.com;
+
+        # Redirect all HTTP requests to HTTPS
+        return 301 https://$host$request_uri;
+    }
+
+    server {
+        listen 443 ssl;
+        listen [::]:443 ssl;
+        server_name yourdomain.com www.yourdomain.com;
+
+        ssl_certificate /etc/letsencrypt/live/yourdomain.com/fullchain.pem;
+        ssl_certificate_key /etc/letsencrypt/live/yourdomain.com/privkey.pem;
+        include /etc/letsencrypt/options-ssl-nginx.conf;
+        ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem;
+
+        root /var/www/html;
+        index index.html index.htm;
+
+        location / {
+            try_files $uri $uri/ =404;
+        }
+    }
+    ```
+3. **Save the file and exit**.
+
+### Step 5: Obtain and Configure SSL Certificate with Certbot
+
+1. **Install Certbot and the Nginx plugin**:
+    ```sh
+    sudo apt update
+    sudo apt install certbot python3-certbot-nginx
+    ```
+2. **Run Certbot to obtain and configure the SSL certificate**:
+    ```sh
+    sudo certbot --nginx -d yourdomain.com -d www.yourdomain.com
+    ```
+
+### Step 6: Verify and Test Configuration
+
+1. **Test the Nginx configuration**:
+    ```sh
+    sudo nginx -t
+    ```
+2. **Reload Nginx**:
+    ```sh
+    sudo systemctl reload nginx
+    ```
+
+### Step 7: Verify Access to Your Domain
+
+1. **Open a web browser and go to**:
+    - `http://yourdomain.com`
+    - `http://www.yourdomain.com`
+    - `https://yourdomain.com`
+    - `https://www.yourdomain.com`
+
+You should see your default Nginx page (or your custom page) served over both HTTP and HTTPS, with HTTP requests being redirected to HTTPS.
+
+### Step 8: Ensure Certificate Renewal
+
+1. **Simulate certificate renewal** to ensure everything is configured correctly:
+    ```sh
+    sudo certbot renew --dry-run
+    ```
+
+By following these steps, your GoDaddy domain should be correctly mapped to your Google Cloud instance, and your website should be accessible over both HTTP and HTTPS. If you encounter any issues, please provide specific error messages or details about the problem.
+
 ## Debian 
 
 Debian is way cheaper for some reason on Google cloud.
