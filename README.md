@@ -508,3 +508,91 @@ or if you prefer to use the full path:
 
 Placing your scripts in `/usr/local/bin/useful-scripts` keeps them organized and accessible, without cluttering your web content directories under `/var/www`. This approach maintains a clean separation between your web files and executable scripts, adhering to best practices for system organization.
 
+
+To set up `rsync` to mirror your local directory on your Mac to the web directory on your Debian Linux Google Cloud server, you can create a shell script on your Mac and use a cron job to automate the process. Here’s how to do it step by step:
+
+### Step 1: Ensure SSH Access
+
+Make sure you have SSH key-based authentication set up between your Mac and the Debian server. This allows `rsync` to connect without requiring a password each time.
+
+1. **Generate SSH Key (if not already done):**
+   ```sh
+   ssh-keygen -t rsa
+   ```
+   
+2. **Copy SSH Key to Server:**
+   ```sh
+   ssh-copy-id aihumanitarians@humanitarians
+   ```
+
+### Step 2: Create the `rsync` Script on Your Mac
+
+Create a shell script to use `rsync` for syncing your local directory with the server directory.
+
+1. Open a terminal on your Mac.
+
+2. Create a new script file:
+   ```sh
+   nano ~/sync_bearbrown.sh
+   ```
+
+3. Add the following script to `sync_bearbrown.sh`:
+   ```sh
+   #!/bin/bash
+
+   # Local directory
+   LOCAL_DIR="/Users/nik/Documents/BearBrown/bearbrown.net/"
+
+   # Remote server details
+   REMOTE_USER="aihumanitarians"
+   REMOTE_HOST="humanitarians"
+   REMOTE_DIR="/var/www/html/bearbrown.net/"
+
+   # Rsync command
+   rsync -avz --delete $LOCAL_DIR ${REMOTE_USER}@${REMOTE_HOST}:${REMOTE_DIR}
+   ```
+
+   - The `--delete` option ensures that files deleted locally are also deleted on the server.
+   - The `-a` flag is for archive mode, which preserves permissions and other attributes.
+   - The `-v` flag is for verbose output.
+   - The `-z` flag compresses the data during transfer.
+
+4. Save the script and exit the editor (press `Ctrl+X`, then `Y`, then `Enter`).
+
+5. Make the script executable:
+   ```sh
+   chmod +x ~/sync_bearbrown.sh
+   ```
+
+### Step 3: Test the Script
+
+Before automating it, test the script to ensure it works correctly:
+
+```sh
+~/sync_bearbrown.sh
+```
+
+This command should sync your local `bearbrown.net` directory with the directory on the server.
+
+### Step 4: Automate the Script with Cron
+
+Set up a cron job to run the script at regular intervals.
+
+1. Open the cron table for editing:
+   ```sh
+   crontab -e
+   ```
+
+2. Add a line to run the script at your desired interval. For example, to run it every hour, add:
+   ```sh
+   0 * * * * /Users/nik/sync_bearbrown.sh
+   ```
+
+   This line means "at minute 0 of every hour, run the script."
+
+3. Save and exit the editor (usually, it's `Ctrl+X`, then `Y`, then `Enter`).
+
+### Summary
+
+By following these steps, you’ve set up a script to use `rsync` for syncing your local `bearbrown.net` directory with the server and automated the process using cron on your Mac. This setup ensures that your web directory on the server is automatically updated with changes from your local directory.
+
